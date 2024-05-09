@@ -87,6 +87,8 @@ public class YourService extends KiboRpcService {
         Mat undistortImg = new Mat();
         Calib3d.undistort(image, undistortImg, cameraMatrix, cameraCoefficients);
 
+        // recibe un input 3d de la camara y lo convierte a cooerdenadas . basicamente a plana la imagen
+        
 //Image Distortion
 //Straightening the Captured image
 //Camera martix and lens distortion are needed
@@ -207,7 +209,7 @@ public class YourService extends KiboRpcService {
         private Mat resizeImg (Mat img, int width) {
             int height = (int) (img.rows() * ((double) width / img.cols()));
             Mat resizedImg = new Mat();
-            Imgproc.resize(img, resizedImg, new Size(width, height)); // Buscar que hacee
+            Imgproc.resize(img, resizedImg, new Size(width, height)); //  lo mismo de python
 
             return resizedImg;
         }
