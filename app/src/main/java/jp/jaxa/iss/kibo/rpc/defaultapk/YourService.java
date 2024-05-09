@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import android.graphics.Bitmap;
-import andoird.graphics.BitmapFactory;
+import android.graphics.BitmapFactory;
 
 import org.opencv.core.Core;
 import org.opencv.android.Utils;
@@ -54,23 +54,35 @@ public class YourService extends KiboRpcService {
 //
 //
 //...Detect AR
-        Dictionary dicttionary= Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
+        Dictionary dictionary= Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
         List<Mat> corners = new ArrayList<>();
         Mat markerIds = new Mat();
-        Aruco.detectMarkers(image_dictionary, corners, markerIds);
+        Aruco.detectMarkers(image,dictionary, corners, markerIds);
+
+        //importa un diccionario de los AR establecidos
+        // utiliza 5p x 5p , 250 diferentes marcadores
+        // crea las matrix de esquinas y de los id
+        // los ids ya vienen preseleccionados del diccionarios. para detectar selecciona las 4 esquinas. la superior izquierda es la que meda la direccion asi este
+        //rotado sobre el mismo plano
 
 //Get Camera Matrix
 
-        Mat cameraMatrix = new Mat(rows 3, cols 3, CvType.CV_64F);
-        cameraMatrix.put(row 0, col 0, api.getNavCamIntrinsics()[0]);
+        Mat cameraMatrix = new Mat( 3,  3, CvType.CV_64F);
+        cameraMatrix.put( 0,  0, api.getNavCamIntrinsics()[0]);  // what is the  index 0 ?
+
+        // la matrix de la camara
 
 //Get Lens distortion parameters
 
-        Mat cameraCoefficients = new Mat(rows 1, cols 5, CvType.CV_64F);
-        cameraCoefficients.put(row 0, col 0, api.getNavCamIntrinsics()[1]);
-        cameraCoefficients.convertTo(cameraCoefficients, CvType.CV_64F);
+        Mat cameraCoefficients = new Mat(1, 5, CvType.CV_64F);
+        cameraCoefficients.put(0,  0, api.getNavCamIntrinsics()[1]);  // what is the  index1 ?
 
-// Undistort image
+        // los coeficientes de distorcion
+        cameraCoefficients.convertTo(cameraCoefficients, CvType.CV_64F); // crea una matrix para almacenar  los  datos de la camara
+
+        // reafirma el formato
+
+//undistor image
 
         Mat undistortImg = new Mat();
         Calib3d.undistort(image, undistortImg, cameraMatrix, cameraCoefficients);
@@ -79,32 +91,37 @@ public class YourService extends KiboRpcService {
 //Straightening the Captured image
 //Camera martix and lens distortion are needed
 
-        api.getNavCamIntrinsics()
-        api.getDockCamIntrinsics()
+        api.getNavCamIntrinsics();
+        api.getDockCamIntrinsics();
 
 
 //Pattern matching
 //Load template images
-        Mat [] templates = ner Mat[TEMPLATE_FILE_NAME.length];
+        Mat [] templates = new Mat[TEMPLATE_FILE_NAME.length];
         for (int i = 0; i < TEMPLATE_FILE_NAME.lenght; i++) {
             try {
                 //Open the template image file in Bitmap from the file name and convert to Mat
-                InputStream inpurStream = getAssets().open(TEMPLATE_FILE_NAME[i]);
-                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                InputStream inputStream = getAssets().open(TEMPLATE_FILE_NAME[i]);
+                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);   /*  es un formato de imagen con bits
+                . el codigo lo esta convirtiendo en matrix con el mat para luego hacere el analisis con el opencv*/
                 Mat mat = new Mat();
                 Utils.bitmapToMat(bitmap, mat);
 
                 //Convert to grayscale
-                Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2GRAY);
+                Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2GRAY); // es una clase de opencv para hacer procesamiento de imagenes
+
+                //cvcolor es el metodo  , 1 mat es la imagen de entrada, 2 mat es la salida con el cambio
+
+                // BGR son las entradas del color del input, gray lleva la imagen a una escala de grises
 
                 //Assign to an array of templates
                 templates[i] = mat;
 
-                Input Stream.close();
+                inputStream.close();
 
 
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace();  //  busca excepciones  del estilo IOExeption INPUT / OUTPUT
             }
         }
 
@@ -112,16 +129,16 @@ public class YourService extends KiboRpcService {
         int templateMatchCnt[] = new int[10];
 
 //Get the number of template matches
-        for (int tempNum = 0; tempNum < template.lenght; tempNum++) {
+        for (int tempNum = 0; tempNum < templates.length; tempNum++) {
             //Number of matches
-            int mstchCnt = 0;
+            int matchCnt = 0;
 
             //Coordinates if the matched Location
 
             List<org.opencv.core.Point> matches = new ArrayList<>();
 
             //Loading tamplate image anf target item
-            Mat tamplate = templates[tempNum].clone();
+            Mat template = templates[tempNum].clone();
             Mat targetImg = undistortImg.clone();
 
             //Pattern matching
@@ -130,30 +147,36 @@ public class YourService extends KiboRpcService {
             int changeWidth = 5; //[px]
             int changeAngle = 45; //[degree]
 
-            for (int i = widthMin; i <= widthMax; i= += changeWidth) {
+            for (int i = widthMin; i <= widthMax; i += changeWidth) {
                 for (int j= 0; j <= 360; j+= changeAngle) {
+
                     Mat resizedTemp = resizeImg(template, i);
                     Mat rotResizedTemp = rotImg(resizedTemp, j);
 
                     Mat result = new Mat();
-                    Imgproc.matchTemplate(targetImg, rotResizedTemp, result, Imgproc. TM_CCOEFF_NORMED);
+                    Imgproc.matchTemplate(targetImg, rotResizedTemp, result, Imgproc.TM_CCOEFF_NORMED); //
 
                     //Get coordinates with similarity equal or greater than "threshold"
                     double threshold = 0.8;
                     Core.MinMaxLocResult mmlr = Core.minMaxLoc(result);
                     double maxVal = mmlr.maxVal;
+
                     if (maxVal >= threshold) {
                         //Getting only the results equal on greater than the defined AK threshold (80%)
 
                         Mat thresholdedResult = new Mat ();
-                        Imgproc.threshold(result, thresholdedResult, threshold, maxval: 1.0, Imgproc.THRESH_TOZERO);
+                        Imgproc.threshold(result, thresholdedResult, threshold, 1.0, Imgproc.THRESH_TOZERO); //
 
-                        //Obtained mathches
+                        /* primero hace una matrix con los resultados , tiene unos parametros que son la matrix
+                        * , el thresholdy el maximo (1) , todos los menores los que estan menores a 0.8 los hace 0 , solo me quedan en la matrix los que estan entre
+                        * 0.8 y 1 */
+
+                        //Obtained matches
 
                         for (int y = 0; y < thresholdedResult.rows(); y++) {
                             for (int x = 0; x < thresholdedResult.cols(); x++) {
                                 if (thresholdedResult.get(y, x)[0] > 0) {
-                                    matches.add(new org.opencv.core.Point(x, y));
+                                    matches.add(new org.opencv.core.Point(x,y));
                                 }
                             }
                         }
@@ -172,23 +195,27 @@ public class YourService extends KiboRpcService {
 //When you recognize items, Let's set the type and number.
 
         int mostMatchTemplateNum = getMaxIndex(templateMatchCnt);
-        api.setAreaInfo(areald: 1, TEMPLATE_NAME[mostMatchTemplateNum], templateMatchCnt[mostMatchTemplateNum]);
+
+        api.setAreaInfo( 1, TEMPLATE_NAME[mostMatchTemplateNum], templateMatchCnt[mostMatchTemplateNum]);
 
 
+
+
+//############################ THE PART BELOW IS FOR FUNCTION DEFINITION ##################################
 
 //Resize image
         private Mat resizeImg (Mat img, int width) {
             int height = (int) (img.rows() * ((double) width / img.cols()));
             Mat resizedImg = new Mat();
-            Imgproc.resize(img, resizedImg, newSize(width, height));
+            Imgproc.resize(img, resizedImg, new Size(width, height)); // Buscar que hacee
 
             return resizedImg;
         }
 
 // Rotate image - Defining methods
         private Mat rotImg (Mat img, int angle) {
-            org.opencv.core.Point center = new org.opencv.core.Point (x: img.cols() / 2.0, y:img.rows() / 2.0);
-            Mat rotatedMat = Imgproc.getRotationMatrix2D(center, angle, scale: 1.0);
+            org.opencv.core.Point center = new org.opencv.core.Point (img.cols() / 2.0, img.rows() / 2.0);
+            Mat rotatedMat = Imgproc.getRotationMatrix2D(center, angle,  1.0);
             Mat rotatedImg = new Mat();
             Imgproc.warpAffine(img, rotatedImg, rotatedMat, img.size());
 
@@ -201,13 +228,13 @@ public class YourService extends KiboRpcService {
             doubles length = 10; // Width 10 px
             List<org.opencv.core.Point> filteredList = new ArrayList<>();
 
-            for(org.opencv.core.Point point : point) {
-                boolean inInclude = false;
+            for(org.opencv.core.Point point : points) {
+                boolean isInclude = false;
                 for (org.opencv.core.Point checkPoint : filteredList) {
                     double distance = calculateDistance(point, checkPoint);
 
                     if (distance <= length) {
-                        inInclude = true;
+                        isInclude = true;
                         break;
                     }
                 }
@@ -238,6 +265,7 @@ public class YourService extends KiboRpcService {
                     maxIndex = i;
                 }
             }
+
             return maxIndex;
         }
 
