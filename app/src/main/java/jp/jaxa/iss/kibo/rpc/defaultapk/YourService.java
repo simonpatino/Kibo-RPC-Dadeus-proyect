@@ -1,7 +1,8 @@
-package jp.jaxa.iss.kibo.rpc.sampleapk;
+package jp.jaxa.iss.kibo.rpc.defaultapk;  //sample apk
 
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
-import java.until.ArrayList;
+import java.util.ArrayList;
+import java.util.List;
 
 import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
@@ -9,19 +10,24 @@ import gov.nasa.arc.astrobee.types.Quaternion;
 import org.opencv.core.Mat;
 import org.opencv.aruco.Dictionary;
 import org.opencv.aruco.Aruco;
-import org.opencv.CvType;
-import org.opencv.core.Mat;
-import org.opencv.calib3d.Calib3d;
+import org.opencv.core.CvType;
 
+
+import org.opencv.calib3d.Calib3d;
 import java.io.IOException;
 import java.io.InputStream;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 
 import org.opencv.core.Core;
 import org.opencv.android.Utils;
 import org.opencv.imgproc.Imgproc;
+
+import org.opencv.core.Size;
+import org.opencv.core.Core;
+
 
 /**
  * Class meant to handle commands from the Ground Data System and execute them in Astrobee.
@@ -36,7 +42,7 @@ public class YourService extends KiboRpcService {
         // Move to a point.
         Point point = new Point(10.9d, -9.92284d, 5.195d);
         Quaternion quaternion = new Quaternion(0f, 0f, -0.707f, 0.707f);
-        api.moveTo(point, quaternion, false);
+        api.moveTo(point, quaternion, true);
 
         // Get a camera image.
         Mat image = api.getMatNavCam();
@@ -45,14 +51,6 @@ public class YourService extends KiboRpcService {
         /* Write your code to recognize type and number of items in the each area! */
         /* *********************************************************************** */
 
-        // When you recognize items, let’s set the type and number.
-        api.setAreaInfo(1, "item_name", 1);
-
-        // Method Aruco.detectMarkers
-
-        //...
-//
-//
 //...Detect AR
         Dictionary dictionary= Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
         List<Mat> corners = new ArrayList<>();
@@ -66,6 +64,7 @@ public class YourService extends KiboRpcService {
         //rotado sobre el mismo plano
 
 //Get Camera Matrix
+
 
         Mat cameraMatrix = new Mat( 3,  3, CvType.CV_64F);
         cameraMatrix.put( 0,  0, api.getNavCamIntrinsics()[0]);  // what is the  index 0 ?
@@ -88,7 +87,7 @@ public class YourService extends KiboRpcService {
         Calib3d.undistort(image, undistortImg, cameraMatrix, cameraCoefficients);
 
         // recibe un input 3d de la camara y lo convierte a cooerdenadas . basicamente a plana la imagen
-        
+
 //Image Distortion
 //Straightening the Captured image
 //Camera martix and lens distortion are needed
@@ -97,13 +96,23 @@ public class YourService extends KiboRpcService {
         api.getDockCamIntrinsics();
 
 
+
+
 //Pattern matching
 //Load template images
-        Mat [] templates = new Mat[TEMPLATE_FILE_NAME.length];
-        for (int i = 0; i < TEMPLATE_FILE_NAME.lenght; i++) {
+        String[] TEMPLATE_FILE_NAME = {"goggle.png","beaker.png","hammer.png","kapton_tape.png","pipette.png","screwdriver.png","thermometer.png","top.png","watch.png","wrench.png"};
+        String[] TEMPLATE_NAME =  { "goggle","beaker","hammer","kapton tape","pipette","screwdriver","thermometer","top","watch","wrench"};
+
+        Mat[] templates = new Mat[TEMPLATE_FILE_NAME.length];
+        for (int i = 0; i < TEMPLATE_FILE_NAME.length ; i++) {
             try {
+
+                Log.i("debug", TEMPLATE_FILE_NAME[i]);
                 //Open the template image file in Bitmap from the file name and convert to Mat
                 InputStream inputStream = getAssets().open(TEMPLATE_FILE_NAME[i]);
+
+
+
                 Bitmap bitmap = BitmapFactory.decodeStream(inputStream);   /*  es un formato de imagen con bits
                 . el codigo lo esta convirtiendo en matrix con el mat para luego hacere el analisis con el opencv*/
                 Mat mat = new Mat();
@@ -119,16 +128,21 @@ public class YourService extends KiboRpcService {
                 //Assign to an array of templates
                 templates[i] = mat;
 
-                inputStream.close();
+                Log.i("debug", "matrix" + templates[i]);
 
+                inputStream.close();
 
             } catch (IOException e) {
                 e.printStackTrace();  //  busca excepciones  del estilo IOExeption INPUT / OUTPUT
             }
         }
 
+
+
 //Number of matches for each template
         int templateMatchCnt[] = new int[10];
+
+
 
 //Get the number of template matches
         for (int tempNum = 0; tempNum < templates.length; tempNum++) {
@@ -198,78 +212,9 @@ public class YourService extends KiboRpcService {
 
         int mostMatchTemplateNum = getMaxIndex(templateMatchCnt);
 
-        api.setAreaInfo( 1, TEMPLATE_NAME[mostMatchTemplateNum], templateMatchCnt[mostMatchTemplateNum]);
 
 
-
-
-//############################ THE PART BELOW IS FOR FUNCTION DEFINITION ##################################
-
-//Resize image
-        private Mat resizeImg (Mat img, int width) {
-            int height = (int) (img.rows() * ((double) width / img.cols()));
-            Mat resizedImg = new Mat();
-            Imgproc.resize(img, resizedImg, new Size(width, height)); //  lo mismo de python
-
-            return resizedImg;
-        }
-
-// Rotate image - Defining methods
-        private Mat rotImg (Mat img, int angle) {
-            org.opencv.core.Point center = new org.opencv.core.Point (img.cols() / 2.0, img.rows() / 2.0);
-            Mat rotatedMat = Imgproc.getRotationMatrix2D(center, angle,  1.0);
-            Mat rotatedImg = new Mat();
-            Imgproc.warpAffine(img, rotatedImg, rotatedMat, img.size());
-
-            return rotatedImg;
-
-        }
-
-//Remove multiple detections
-        private static List<org.opencv.core.Point> removeDuplicates (List<org.opencv.core.Point> points) {
-            doubles length = 10; // Width 10 px
-            List<org.opencv.core.Point> filteredList = new ArrayList<>();
-
-            for(org.opencv.core.Point point : points) {
-                boolean isInclude = false;
-                for (org.opencv.core.Point checkPoint : filteredList) {
-                    double distance = calculateDistance(point, checkPoint);
-
-                    if (distance <= length) {
-                        isInclude = true;
-                        break;
-                    }
-                }
-
-                if (!isInclude) {
-                    filteredList.add(point);
-                }
-            }
-            return filteredList;
-        }
-
-//Find the distance between two points
-        private static double calculateDistance (org.opencv.core.Point p1, org.opencv.core.Point p2) {
-            double dx = p1.x - p2.x ;
-            double dy = p1.y - p2.y ;
-            return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
-        }
-
-//Get the maximun value of an array
-        private int getMaxIndex (int[] array) {
-            int max = 0;
-            int maxIndex = 0;
-
-            //Find the index of the element with the largest value
-            for (int i =0; i < array.length; i++) {
-                if (array[i] > max) {
-                    max = array[i];
-                    maxIndex = i;
-                }
-            }
-
-            return maxIndex;
-        }
+        api.setAreaInfo( 1, TEMPLATE_NAME[mostMatchTemplateNum], templateMatchCnt[mostMatchTemplateNum]); //check this line
 
         /* **************************************************** */
         /* Let's move to the each area and recognize the items. */
@@ -303,9 +248,78 @@ public class YourService extends KiboRpcService {
         // write your plan 3 here.
     }
 
+    //################################# FUNCTIONS ####################################
+
     // You can add your method.
     private String yourMethod(){
         return "your method";
+    }
+
+    //Resize image
+    private Mat resizeImg (Mat img, int width) {
+        int height = (int) (img.rows() * ((double) width / img.cols()));
+        Mat resizedImg = new Mat();
+        Imgproc.resize(img, resizedImg, new Size(width, height)); //  lo mismo de python
+
+        return resizedImg;
+
+    }
+
+    // Rotate image - Defining methods
+    private Mat rotImg (Mat img, int angle) {
+        org.opencv.core.Point center = new org.opencv.core.Point (img.cols() / 2.0, img.rows() / 2.0);
+        Mat rotatedMat = Imgproc.getRotationMatrix2D(center, angle,  1.0);
+        Mat rotatedImg = new Mat();
+        Imgproc.warpAffine(img, rotatedImg, rotatedMat, img.size());
+
+        return rotatedImg;
+
+    }
+
+    //Remove multiple detections
+    private static List<org.opencv.core.Point> removeDuplicates (List<org.opencv.core.Point> points) {
+        double length = 10; // Width 10 px
+        List<org.opencv.core.Point> filteredList = new ArrayList<>();
+
+        for(org.opencv.core.Point point : points) {
+            boolean isInclude = false;
+            for (org.opencv.core.Point checkPoint : filteredList) {
+                double distance = calculateDistance(point, checkPoint);
+
+                if (distance <= length) {
+                    isInclude = true;
+                    break;
+                }
+            }
+
+            if (!isInclude) {
+                filteredList.add(point);
+            }
+        }
+        return filteredList;
+    }
+
+    //Find the distance between two points
+    private static double calculateDistance (org.opencv.core.Point p1, org.opencv.core.Point p2) {
+        double dx = p1.x - p2.x ;
+        double dy = p1.y - p2.y ;
+        return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+    }
+
+    //Get the maximun value of an array
+    private int getMaxIndex (int[] array) {
+        int max = 0;
+        int maxIndex = 0;
+
+        //Find the index of the element with the largest value
+        for (int i =0; i < array.length; i++) {
+            if (array[i] > max) {
+                max = array[i];
+                maxIndex = i;
+            }
+        }
+
+        return maxIndex;
     }
 }
 
