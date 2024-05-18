@@ -44,6 +44,21 @@ public class YourService extends KiboRpcService {
         Quaternion quaternion = new Quaternion(0f, 0f, -0.707f, 0.707f);
         api.moveTo(point, quaternion, true);
 
+        // Moverse a un punto para esquivar la KOZ
+        Point point1_1 = new Point(11d, -9.92284, 5.195d);
+        Quaternion quaternion1_1 = new Quaternion(0f, 0f, -0.707f, 0.707f);
+        api.moveTo(point1_1, quaternion1_1, true);
+
+        // Moverse a un punto para esquivar la KOZ
+        Point point1_2 = new Point(11d, -9.25d, 5.195d);
+        Quaternion quaternion1_2 = new Quaternion(0f, 0f, -0.707f, 0.707f);
+        api.moveTo(point1_2, quaternion1_2, true);
+
+        // Definir area dos (disminuye en z, baja al "piso")
+        Point point2 = new Point(11d, -9.15d, 4.5);
+        Quaternion quaternion2 = new Quaternion(0.707f, 0.707f,0f, 0f);
+        api.moveTo(point2, quaternion2,true);
+
         // Get a camera image.
         Mat image = api.getMatNavCam();
 

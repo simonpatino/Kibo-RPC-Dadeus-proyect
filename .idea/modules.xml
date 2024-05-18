@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Kibo-RPC-Dadeus-proyect.iml" filepath="$PROJECT_DIR$/Kibo-RPC-Dadeus-proyect.iml" group="Kibo-RPC-Dadeus-proyect" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" group="Kibo-RPC-Dadeus-proyect/app" />
+      <module fileurl="file://$PROJECT_DIR$/guest_science_library/guest_science_library.iml" filepath="$PROJECT_DIR$/guest_science_library/guest_science_library.iml" group="Kibo-RPC-Dadeus-proyect/guest_science_library" />
+      <module fileurl="file://$PROJECT_DIR$/kibo_rpc_api/kibo_rpc_api.iml" filepath="$PROJECT_DIR$/kibo_rpc_api/kibo_rpc_api.iml" group="Kibo-RPC-Dadeus-proyect/kibo_rpc_api" />
+    </modules>
+  </component>
+</project>
